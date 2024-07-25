@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}API Keys{% endblock %}
+{% block content %}
+<div class="max-w-md mx-auto bg-white p-6 rounded-lg shadow-md">
+    <h2 class="text-2xl font-bold mb-4">Manage API Keys</h2>
+    <form method="POST">
+        <div class="mb-4">
+            <label class="block text-gray-700">News API Key</label>
+            <input type="text" name="newsapi_key" class="w-full p-2 border border-gray-300 rounded mt-1">
+        </div>
+        <div class="mb-4">
+            <label class="block text-gray-700">CoinMarketCap API Key</label>
+            <input type="text" name="coinmarketcap_key" class="w-full p-2 border border-gray-300 rounded mt-1">
+        </div>
+        <button type="submit" class="w-full bg-blue-600 text-white p-2 rounded">Save API Keys</button>
+    </form>
+</div>
+{% endblock %}
