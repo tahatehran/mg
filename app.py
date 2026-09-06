@@ -1,13 +1,15 @@
 from flask import Flask, request, jsonify, render_template, redirect, url_for, session
+from urllib.parse import quote
 import requests
 import json
 import os
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'
+app.secret_key = os.environ.get('SECRET_KEY', 'your_secret_key')
 
-USERS_FILE = 'data/users.json'
-API_KEYS_FILE = 'data/api_keys.json'
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+USERS_FILE = os.path.join(BASE_DIR, 'data', 'users.json')
+API_KEYS_FILE = os.path.join(BASE_DIR, 'data', 'api_keys.json')
 
 def load_users():
     if not os.path.exists(USERS_FILE):
@@ -90,7 +92,8 @@ def crypto_news(crypto_symbol):
     return jsonify(articles)
 
 def get_crypto_news(api_key, crypto_symbol, articles_count=10):
-    url = f"https://newsapi.org/v2/everything?q={crypto_symbol}&apiKey={api_key}&language=en&sortBy=publishedAt&pageSize={articles_count}"
+    symbol = quote(crypto_symbol.strip(), safe='')
+    url = f"https://newsapi.org/v2/everything?q={symbol}&apiKey={api_key}&language=en&sortBy=publishedAt&pageSize={articles_count}"
     response = requests.get(url)
     if response.status_code == 200:
         news_data = response.json()
