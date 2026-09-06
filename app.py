@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, render_template, redirect, url_for, session
 from urllib.parse import quote, urlparse
+from pathlib import Path
 import requests
 import json
 import os
@@ -9,17 +10,15 @@ import ipaddress
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'your_secret_key')
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, 'data')
+DATA_DIR = (Path(__file__).resolve().parent / 'data').resolve()
 
 ALLOWED_API_HOSTS = {'newsapi.org', 'www.newsapi.org'}
 
 
 def _data_file(filename):
-    """Resolve a file inside data/ and refuse anything escaping that folder."""
-    data_root = os.path.realpath(DATA_DIR)
-    path = os.path.realpath(os.path.join(data_root, filename))
-    if os.path.commonpath([path, data_root]) != data_root:
+    """Return a normalized path inside data/, rejecting anything outside it."""
+    path = (DATA_DIR / filename).resolve()
+    if path.parent != DATA_DIR:
         raise ValueError('Invalid data file path')
     return path
 
@@ -47,30 +46,26 @@ def _is_safe_api_url(url):
 
 def load_users():
     users_path = _data_file('users.json')
-    if not os.path.exists(users_path):
-        with open(users_path, 'w') as file:
-            json.dump({"users": []}, file)
-    with open(users_path, 'r') as file:
-        return json.load(file)
+    if not users_path.exists():
+        users_path.write_text(json.dumps({"users": []}), encoding='utf-8')
+    return json.loads(users_path.read_text(encoding='utf-8'))
 
 def save_users(users):
-    with open(_data_file('users.json'), 'w') as file:
-        json.dump(users, file)
+    _data_file('users.json').write_text(json.dumps(users), encoding='utf-8')
 
 def load_api_keys():
     keys_path = _data_file('api_keys.json')
-    if not os.path.exists(keys_path):
-        with open(keys_path, 'w') as file:
-            json.dump({"newsapi_key": "", "coinmarketcap_key": ""}, file)
-    with open(keys_path, 'r') as file:
-        return json.load(file)
+    if not keys_path.exists():
+        keys_path.write_text(
+            json.dumps({"newsapi_key": "", "coinmarketcap_key": ""}),
+            encoding='utf-8')
+    return json.loads(keys_path.read_text(encoding='utf-8'))
 
 def save_api_keys(newsapi_key, coinmarketcap_key):
     api_keys = load_api_keys()
     api_keys['newsapi_key'] = newsapi_key
     api_keys['coinmarketcap_key'] = coinmarketcap_key
-    with open(_data_file('api_keys.json'), 'w') as file:
-        json.dump(api_keys, file)
+    _data_file('api_keys.json').write_text(json.dumps(api_keys), encoding='utf-8')
 
 @app.route('/')
 def home():
@@ -101,7 +96,7 @@ def signup():
         users['users'].append({"username": username, "password": password})
         save_users(users)
         return redirect(url_for('login'))
-        return render_template('signup.html')
+    return render_template('signup.html')
 
 @app.route('/dashboard')
 def dashboard():
@@ -158,4 +153,4 @@ def logout():
     return redirect(url_for('home'))
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=os.environ.get('FLASK_DEBUG') == '1')
